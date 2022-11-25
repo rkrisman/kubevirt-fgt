@@ -65,3 +65,7 @@ cat ufgt-template.yaml | \
   sed -e "s+(fmgip)+${fmgip}+g" | \
   sed -e "s+(fmgsn)+${fmgsn}+g" | \
 kubectl apply -f -
+
+kubectl get vm ${hostname}
+
+kubectl get vmi ${hostname}
