@@ -2,7 +2,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: $(hostname)-log
+  name: (hostname)-log
 spec:
   accessModes:
     - ReadWriteMany
@@ -15,7 +15,7 @@ spec:
 kind: VirtualMachine
 apiVersion: kubevirt.io/v1
 metadata:
-  name: $(hostname)
+  name: (hostname)
 spec:
   running: true
   template:
@@ -47,8 +47,8 @@ spec:
           type: ""
         resources:
           requests:
-            cpu: 2
-            memory: 4G
+            cpu:(cpu)
+            memory: (memory)
       networks:
       - name: default
         pod: {}
@@ -65,15 +65,15 @@ spec:
       volumes:
       - name: fosdisk
         dataVolume:
-          name: $(hostname)
+          name: (hostname)
       - name: logdisk
         persistentVolumeClaim:
-          claimName: $(hostname)-log
+          claimName: (hostname)-log
       - name: cloudinitdisk
         cloudInitConfigDrive:
           userData: |-
             config system global
-              set hostname $(hostname)
+              set hostname (hostname)
             end
             config system admin
               edit admin
@@ -82,18 +82,18 @@ spec:
             end
             config system central-management
               set type fortimanager
-              set fmg 172.31.254.4
+              set fmg (fmgip)
             end
-            execute central-mgmt register-device FMG-VMTM22014917 fortinet
+            execute central-mgmt register-device (fmgsn) fortinet
             
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name: $(hostname)-https
+  name: (hostname)-https
 spec:
   selector:
-    vm.kubevirt.io/name: $(hostname)
+    vm.kubevirt.io/name: (hostname)
   ports:
   - protocol: TCP
     port: 443
@@ -101,20 +101,20 @@ spec:
 kind: Ingress
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: $(hostname)
+  name: (hostname)
   namespace: default
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
   rules:
-  - host: $(hostname).k8s.lab
+  - host: (hostname).k8s.lab
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: $(hostname)-https
+            name: (hostname)-https
             port:
               number: 443
