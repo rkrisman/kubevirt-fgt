@@ -66,6 +66,15 @@ cat ufgt-template.yaml | \
   sed -e "s+(fmgsn)+${fmgsn}+g" | \
 kubectl apply -f -
 
+echo "*** VALIDATING FGT MICROVM... ***"
+echo ""
+
+sleep 60
+
+kubectl wait --for=condition=ready vm ${hostname} --timeout=90s
+
 kubectl get vm ${hostname}
+
+kubectl wait --for=condition=ready vmi ${hostname} --timeout=90s
 
 kubectl get vmi ${hostname}
