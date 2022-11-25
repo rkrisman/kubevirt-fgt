@@ -1,0 +1,120 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: $(hostname)-log
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nfs-default
+  volumeMode: Filesystem
+---
+kind: VirtualMachine
+apiVersion: kubevirt.io/v1
+metadata:
+  name: $(hostname)
+spec:
+  running: true
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker1
+      domain:
+        devices:
+          disks:
+            - name: fosdisk
+              disk:
+                bus: virtio
+            - name: logdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+          - name: default
+            masquerade: {}
+          - name: ingress
+            bridge: {}
+          - name: ha
+            bridge: {}
+          - name: egress
+            bridge: {}
+        machine:
+          type: ""
+        resources:
+          requests:
+            cpu: 2
+            memory: 4G
+      networks:
+      - name: default
+        pod: {}
+      - name: ingress
+        multus:
+          networkName: ingress
+      - name: ha
+        multus:
+          networkName: ha
+      - name: egress
+        multus:
+          networkName: egress
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: fosdisk
+        dataVolume:
+          name: $(hostname)
+      - name: logdisk
+        persistentVolumeClaim:
+          claimName: $(hostname)-log
+      - name: cloudinitdisk
+        cloudInitConfigDrive:
+          userData: |-
+            config system global
+              set hostname $(hostname)
+            end
+            config system admin
+              edit admin
+                set password fortinet
+              next
+            end
+            config system central-management
+              set type fortimanager
+              set fmg 172.31.254.4
+            end
+            execute central-mgmt register-device FMG-VMTM22014917 fortinet
+            
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: $(hostname)-https
+spec:
+  selector:
+    vm.kubevirt.io/name: $(hostname)
+  ports:
+  - protocol: TCP
+    port: 443
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: $(hostname)
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  rules:
+  - host: $(hostname).k8s.lab
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: $(hostname)-https
+            port:
+              number: 443
