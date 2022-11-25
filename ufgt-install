@@ -70,12 +70,12 @@ echo ""
 echo "*** VALIDATING FGT MICROVM... ***"
 echo ""
 
-sleep 15
+sleep 60
 
-kubectl wait --for=condition=ready vm ${hostname} --timeout=90s
+kubectl wait --for=condition=ready vm ${hostname} --timeout=300s
 
 kubectl get vm ${hostname}
 
-kubectl wait --for=condition=ready vmi ${hostname} --timeout=90s
+kubectl wait --for=condition=ready vmi ${hostname} --timeout=300s
 
 kubectl get vmi ${hostname}
