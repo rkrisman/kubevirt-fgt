@@ -66,6 +66,7 @@ cat ufgt-template.yaml | \
   sed -e "s+(fmgsn)+${fmgsn}+g" | \
 kubectl apply -f -
 
+echo ""
 echo "*** VALIDATING FGT MICROVM... ***"
 echo ""
 
