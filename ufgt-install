@@ -54,7 +54,7 @@ echo ""
 echo "*** INSTALLING FGT MICROVM... ***"
 echo ""
 
-virtctl image-upload dv ${hostname} --size 20Gi --image-path ${image} --uploadproxy-url ${uploadproxy} --insecure
+virtctl image-upload dv ${hostname} --size 4Gi --image-path ${image} --uploadproxy-url ${uploadproxy} --insecure
 
 wget --no-cache https://raw.githubusercontent.com/rkrisman/kubevirt-fgt/main/ufgt-template.yaml
 
