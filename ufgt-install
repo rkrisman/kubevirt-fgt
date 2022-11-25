@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# FortiGate MicroVM installation on K8s KubeVirt
+
+## PARAMETER HELP FUNCTION
+helpFunction()
+{
+   echo ""
+   echo "Usage: $0 -h hostname -i image -u uploadproxy -c cpu -m memory -p fmg-ip -s fmg-sn"
+   echo -e "\t-h hostname"
+   echo -e "\t-i image"
+   echo -e "\t-u uploadproxy"
+   echo -e "\t-c cpu"
+   echo -e "\t-m memory (end with G)"
+   echo -e "\t-p fmg-ip"
+   echo -e "\t-s fmg-sn"
+   exit 1 # Exit script after printing help
+}
+
+while getopts "h:i:u:c:m:p:s:" opt
+do
+   case "$opt" in
+      h ) export hostname="$OPTARG" ;;
+      i ) export image="$OPTARG" ;;
+	  u ) export uploadproxy="$OPTARG" ;;
+	  c ) export cpu="$OPTARG" ;;
+	  m ) export memory="$OPTARG" ;;
+	  p ) export fmgip="$OPTARG" ;;
+	  s ) export fmgsn="$OPTARG" ;;
+      ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
+   esac
+done
+
+### Print helpFunction in case parameters are empty
+if [ -z "$hostname" ] || [ -z "$image" ] || [ -z "$uploadproxy" ] || [ -z "$cpu" ] || [ -z "$memory" ] || [ -z "$fmgip" ] || [ -z "$fmgsn" ]
+then
+   echo "WARNING: Some or all of the parameters are empty";
+   helpFunction
+fi
+
+### Begin script in case all parameters are correct
+echo ""
+echo "*** FGT MICROVM INSTALLATION ***"
+echo ""
+echo "- Hostname is $hostname"
+echo "- Image is $image"
+echo "- Uploadproxy URL is $uploadproxy"
+echo "- CPU is $cpu"
+echo "- Memory is $memory"
+echo "- FMG IP is $fmgip"
+echo "- FMG SN is $fmgsn"
+echo ""
+
+echo "*** INSTALLING FGT MICROVM... ***"
+echo ""
+
+virtctl image-upload dv ${hostname} --size 20Gi --image-path ${image} --uploadproxy-url ${uploadproxy} --insecure
+
+wget --no-cache https://raw.githubusercontent.com/rkrisman/kubevirt-fgt/main/ufgt-template.yaml
+
+cat ufgt-template.yaml | \
+  sed -e "s+(hostname)+${hostname}+g" | \
+  sed -e "s+(cpu)+${cpu}+g" | \
+  sed -e "s+(memory)+${memory}+g" | \
+  sed -e "s+(fmgip)+${fmgip}+g" | \
+  sed -e "s+(fmgsn)+${fmgsn}+g" | \
+kubectl apply -f -
