@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# UPF installation
+
+## PARAMETER HELP FUNCTION
+helpFunction()
+{
+   echo ""
+   echo "Usage: $0 -h hostname -n nic -i IP address -r remote subnet -p next hop -c CP loopback IP -m MP loopback IP -u UP loopback IP"
+   echo -e "\t-h Node hostname"
+   echo -e "\t-n NIC"
+   echo -e "\t-i IP address"
+   echo -e "\t-r Remote subnet"
+   echo -e "\t-p Next hop"
+   echo -e "\t-c CP loopback IP"
+   echo -e "\t-m MP loopback IP"
+   echo -e "\t-u UP loopback IP"
+   exit 1 # Exit script after printing help
+}
+
+while getopts "h:n:i:r:p:c:m:u:" opt
+do
+   case "$opt" in
+      h ) export hostName="$OPTARG" ;;
+      n ) export nic="$OPTARG" ;;
+      i ) export ipAddress="$OPTARG" ;;
+      p ) export nextHop="$OPTARG" ;;
+      r ) export remote="$OPTARG" ;;
+      c ) export loCP="$OPTARG" ;;
+      m ) export loMP="$OPTARG" ;;
+      u ) export loUP="$OPTARG" ;;
+      ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
+   esac
+done
+
+### Print helpFunction in case parameters are empty
+if [ -z "$hostName" ] || [ -z "$nic" ] || [ -z "$ipAddress" ] || [ -z "$remote" ] || [ -z "$nextHop" ] || [ -z "$loCP" ] || [ -z "$loMP" ] || [ -z "$loUP" ]
+then
+   echo "WARNING: Some or all of the parameters are empty";
+   helpFunction
+fi
+
+### Begin script in case all parameters are correct
+echo ""
+echo "*** 08 - UPF INSTALLATION ***"
+echo ""
+echo "*** READY TO START INSTALLATION ***"
+echo ""
+echo "- Node hostname is $hostName"
+echo "- NIC is $nic"
+echo "- IP address is $ipAddress"
+echo "- Remote subnet is $remote"
+echo "- Next hop is $nextHop"
+echo "- CP loopback IP is $loCP"
+echo "- MP loopback IP is $loCP"
+echo "- UP loopback IP is $loCP"
+echo ""
+
+## SET HOSTNAME & EXPAND ROOT DISK
+
+echo "*** SETTING HOSTNAME TO $hostName... ***"
+echo ""
+
+sudo hostnamectl set-hostname $hostName
+
+echo ""
+echo "*** SETTING LOCALE TO ENGLISH... ***"
+
+echo '
+LANG="en_US.UTF-8"
+LC_NUMERIC="en_US.UTF-8"
+LC_TIME="en_US.UTF-8"
+LC_MONETARY="en_US.UTF-8"
+LC_PAPER="en_US.UTF-8"
+LC_NAME="en_US.UTF-8"
+LC_ADDRESS="en_US.UTF-8"
+LC_TELEPHONE="en_US.UTF-8"
+LC_MEASUREMENT="en_US.UTF-8"
+LC_IDENTIFICATION="en_US.UTF-8"' | sudo tee /etc/default/locale
+
+echo ""
+echo "*** UPDATING APT-GET REPO... ***"
+echo ""
+
+sudo sed -i 's+# deb http://security.ubuntu.com/ubuntu+deb http://security.ubuntu.com/ubuntu+g' /etc/apt/sources.list
+
+sudo apt-get update
+
+echo ""
+echo "*** EXPANDING DEFAULT PARTITION SIZE TO MAXIMUM... ***"
+echo ""
+
+sudo apt-get install -y cloud-guest-utils
+sudo growpart /dev/vda 1
+sudo resize2fs /dev/vda1
+df -h
+
+echo ""
+echo "*** SETTING LOCAL HOSTNAME FILE... ***"
+echo ""
+
+echo "
+$ipAddress    $hostName $hostName.k8s.lab" | sudo tee -a /etc/hosts
+
+echo ""
+echo "*** SETTING STATIC IP ADDRESS... ***"
+echo ""
+
+echo "
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    $nic:
+      dhcp4: no
+      addresses:
+      - $ipAddress
+      routes:
+      - to: $remote
+        via: $nextHop" | sudo tee /etc/netplan/01-netcfg.yaml
+
+sudo netplan apply
+
+echo "
+[Match]
+Name=lo
+
+[Network]
+Address=$loCP/32
+Address=$loMP/32
+Address=$loUP/32" | sudo tee /etc/systemd/network/lo-static-en.network
+
+sudo chmod 644 /etc/systemd/network/lo-static-en.network
+
+sudo systemctl restart systemd-networkd
+
+echo ""
+
+echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/10-ip_forward.conf
+sysctl -w net.ipv4.ip_forward=1
+
+echo ""
+echo "*** VALIDATING NETWORKS... ***"
+echo ""
+
+echo ""
+echo "*** Links ***"
+echo ""
+ip link
+
+echo ""
+echo "*** IP addresses ***"
+echo ""
+ip -o a
+
+echo ""
+echo "*** Routes ***"
+echo ""
+ip route
+
+echo ""
+echo "*** Check next hop ***"
+echo ""
+ping -c 3 $nextHop
