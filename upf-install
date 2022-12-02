@@ -159,6 +159,6 @@ echo ""
 ip route
 
 echo ""
-echo "*** Check next hop ***"
+echo "*** Checking next hop... ***"
 echo ""
 ping -c 3 $nextHop
