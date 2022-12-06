@@ -6,7 +6,7 @@
 helpFunction()
 {
    echo ""
-   echo "Usage: $0 -h hostname
+   echo "Usage: $0 -h hostname"
    echo -e "\t-h hostname"
    exit 1 # Exit script after printing help
 }
@@ -28,7 +28,7 @@ fi
 
 ### Begin script in case all parameters are correct
 echo ""
-echo "*** FGT MICROVM INSTALLATION ***"
+echo "*** FGT MICROVM UINSTALLATION ***"
 echo ""
 echo "- Hostname is $hostname"
 echo ""
