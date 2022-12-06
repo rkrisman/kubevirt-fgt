@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# FortiGate MicroVM uninstallation on K8s KubeVirt
+
+## PARAMETER HELP FUNCTION
+helpFunction()
+{
+   echo ""
+   echo "Usage: $0 -h hostname
+   echo -e "\t-h hostname"
+   exit 1 # Exit script after printing help
+}
+
+while getopts "h:" opt
+do
+   case "$opt" in
+      h ) export hostname="$OPTARG" ;;
+      ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
+   esac
+done
+
+### Print helpFunction in case parameters are empty
+if [ -z "$hostname" ]
+then
+   echo "WARNING: Some or all of the parameters are empty";
+   helpFunction
+fi
+
+### Begin script in case all parameters are correct
+echo ""
+echo "*** FGT MICROVM INSTALLATION ***"
+echo ""
+echo "- Hostname is $hostname"
+echo ""
+
+echo "*** UNINSTALLING FGT MICROVM... ***"
+echo ""
+
+echo "* DELETING VM $hostname... ***"
+echo ""
+
+kubectl delete vm $hostname
+
+echo "* DELETING PVC $hostname & $hostname-log... ***"
+echo ""
+
+kubectl delete pvc $hostname
+kubectl delete pvc $hostname-log
+
+echo "* DELETING INGRESS $hostname... ***"
+echo ""
+
+kubectl delete ingress $hostname
+
+echo "* DELETING SERVICE $hostname-https... ***"
+echo ""
+
+kubectl delete service $hostname-https
