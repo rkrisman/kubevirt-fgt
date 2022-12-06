@@ -36,22 +36,26 @@ echo ""
 echo "*** UNINSTALLING FGT MICROVM... ***"
 echo ""
 
+echo ""
 echo "* DELETING VM $hostname... ***"
 echo ""
 
 kubectl delete vm $hostname
 
+echo ""
 echo "* DELETING PVC $hostname & $hostname-log... ***"
 echo ""
 
 kubectl delete pvc $hostname
 kubectl delete pvc $hostname-log
 
+echo ""
 echo "* DELETING INGRESS $hostname... ***"
 echo ""
 
 kubectl delete ingress $hostname
 
+echo ""
 echo "* DELETING SERVICE $hostname-https... ***"
 echo ""
 
